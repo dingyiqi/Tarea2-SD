@@ -1,0 +1,57 @@
+version: "3.7"
+
+services:
+  zookeeper:
+    image: 'bitnami/zookeeper:latest'
+    restart: always
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+
+  kafka:
+    image: 'bitnami/kafka:latest'
+    restart: always
+    depends_on:
+      - zookeeper
+    environment:
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+      KAFKA_CFG_ZOOKEEPER_CONNECT: "zookeeper:2181"
+
+  insert:
+    build:
+      context: ./insert/
+      dockerfile: Dockerfile 
+    restart: always
+    depends_on:
+      - zookeeper
+      - kafka
+    environment:
+      PORT: 8080
+      kafkaHost: kafka:9092
+    ports:
+      - "8080:8080"
+
+  update:
+    build:
+      context: ./update/
+      dockerfile: Dockerfile 
+    restart: always
+    depends_on:
+      - zookeeper
+      - kafka
+    environment:
+      kafkaHost: kafka:9092
+      
+  notify:
+    build:
+      context: ./notify/
+      dockerfile: Dockerfile 
+    restart: always
+    depends_on:
+      - zookeeper
+      - kafka
+      - insert
+    environment:
+      PORT: 8081
+      kafkaHost: kafka:9092
+    ports:
+      - "8081:8081"
